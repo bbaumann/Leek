@@ -1,0 +1,153 @@
+//IA Casque
+function RunAwayInX(difX, myCellx, myCelly, offset)
+{
+if(difX > 0)
+return getCellFromXY(myCellx+offset, myCelly);
+else
+return getCellFromXY(myCellx-offset, myCelly);
+}
+function RunAwayInY(difY, myCellx, myCelly, offset)
+{
+if(difY > 0)
+return getCellFromXY(myCellx, myCelly+offset);
+else
+return getCellFromXY(myCellx, myCelly-offset);
+}
+
+function RunAwayInParallel(cellTRAF, offset)
+{
+var myCell = getCell();
+var myCellx = getCellX(myCell);
+var myCelly = getCellY(myCell);
+var cellTRAFx = getCellX(cellTRAF);
+var cellTRAFy = getCellY(cellTRAF);
+var difX = myCellx - cellTRAFx;
+var difY = myCelly - cellTRAFy;
+if(abs(difX) < abs(difY))//run away in x first if better
+{
+var resultx = RunAwayInX(difX, myCellx, myCelly, offset);
+if(resultx != null)//else out of range => change axis
+return resultx;
+}
+var resulty = RunAwayInY(difY, myCellx, myCelly, offset);
+if(resulty != null)//else out of range => change axis
+return resulty;
+if(abs(difX) >= abs(difY))//change axis et on n'a pas fait x
+{
+var resultx = RunAwayInX(difX, myCellx, myCelly, offset);
+if(resultx != null)//else out of range => change axis
+return resultx;
+}
+//Ici on est dans un coin
+return null;
+}
+
+function getCorrectDistance(enemyCell) {
+	return getCellDistance(getCell(), enemyCell);
+}
+
+//--------------------------------
+//------- Code de base -----------
+//--------------------------------
+
+
+// On récupère l'ennemi le plus proche
+var enemy = getNearestEnemy();
+if (getWeapon() == -1)
+	setWeapon(WEAPON_PISTOL); // Attention : coûte 1 PT
+
+//On lance casque quand round % 4 = 2
+var modulo = getTurn();
+while (modulo >=4)
+{
+	modulo = modulo -4;
+}
+if (modulo ==2)
+{
+	useChip(CHIP_HELMET, getLeek());
+}
+
+var enemyCell = getCell(enemy);
+var flee = false;
+var distance = 99;
+var pmUsed = 999;
+while (pmUsed > 0 and getTP() >=2 and flee == false)
+{
+	distance = getCorrectDistance(enemyCell);
+	debug(distance);
+	if (distance <= 10)
+	{
+		debug("while / pistol");
+		var res = 1; //SUCCESS
+		while (getTP() >=3 and (res ==USE_SUCCESS or res == USE_FAILED))
+		{
+			res = useWeapon(enemy); //3PT
+		}
+		if (getTP() >= 2 and getLife() <170)
+			useChip(CHIP_BANDAGE,getLeek());
+		if (getTP() >=2)
+			useChip(CHIP_PEBBLE, enemy); //2PT
+		if (getTP() >=2)
+			useChip(CHIP_SHOCK, enemy); //2PT			
+		flee = true;
+		//break;
+	/*}
+	else if (distance <=10 and distance >7)
+	{*/
+		debug("while / chip");
+		useChip(CHIP_SPARK,enemy); //3PT
+		useChip(CHIP_SPARK,enemy); //3PT
+		if (getTP() >= 2 and getLife() <179)
+			useChip(CHIP_BANDAGE,getLeek());
+		flee = true;
+		//break;
+	}
+	else
+	{
+		pmUsed = moveToward(enemy,1);
+	}
+}
+if (flee)
+{
+	var cell = RunAwayInParallel(enemyCell,4);
+	moveTowardCell(cell);
+	//MoveAwaryFromEnemy
+}
+
+if (getTP() >= 4 and getLife() <120)
+		useChip(CHIP_CURE,getLeek());
+
+distance = getCorrectDistance(enemyCell);;
+if (distance <=7)
+{
+	debug("end / pistol");
+	debug(distance);
+	// On essaye de lui tirer dessus
+	var res = 1; //SUCCESS
+	while (getTP() >=3 and (res ==USE_SUCCESS or res == USE_FAILED))
+	{
+		res = useWeapon(enemy); //3PT
+	}
+	if (getTP() >= 2 and getLife() <160)
+		useChip(CHIP_BANDAGE,getLeek());
+	if (getTP() >=2)
+		useChip(CHIP_PEBBLE, enemy); //2PT
+	if (getTP() >=2)
+		useChip(CHIP_SHOCK, enemy); //2PT
+}
+if (distance <=10)
+{
+	debug("end / chip");
+	debug(distance);
+	var res = 1; //success
+	while (getTP() >=3 and (res ==USE_SUCCESS or res == USE_FAILED))
+	{
+		res = useChip(CHIP_SPARK,enemy); //3PT
+	}
+}
+if (getTP() >= 4)
+	useChip(CHIP_CURE,getLeek());
+if (getTP() >= 2)
+	useChip(CHIP_BANDAGE,getLeek());
+debug("life");
+debug(getLife());
