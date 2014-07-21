@@ -119,7 +119,7 @@ function HealTurn(maxTPtoUse)
 			maxTPtoUse = maxTPtoUse -4;
 	}
 	res =1; //SUCCESS
-	if (maxTPtoUse >=3  and getLife() != getTotalLife())
+	if (maxTPtoUse >=2  and getLife() != getTotalLife())
 	{
 		res = useChip(CHIP_BANDAGE,getLeek()); //2TP
 		if (res ==USE_SUCCESS or res == USE_FAILED)
