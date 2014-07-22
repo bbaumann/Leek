@@ -46,6 +46,16 @@ function getCorrectDistance(enemy) {
 	return getCellDistance(getCell(), getCell(enemy));
 }
 
+function LaunchChip(chip, leek, maxTPtoUse, TP)
+{
+	var res=useChip(chip,leek);
+	debug(chip + " : "+res);
+	if(res==USE_SUCCESS or res==USE_FAILED)
+		maxTPtoUse -= TP;
+	
+	return maxTPtoUse;
+}
+
 function SelfBoosterTurn(maxTPtoUse)
 {
 	if (maxTPtoUse > getTP())
@@ -70,16 +80,12 @@ function BoosterTurn(maxTPtoUse,leek)
 	var res = 1; //SUCCESS
 	if (maxTPtoUse >= 3 and getCorrectDistance(leek) <= 4)
 	{
-		res = useChip(CHIP_PROTEIN, leek);
-		if (res ==USE_SUCCESS or res == USE_FAILED)
-			maxTPtoUse -= 3;
+		maxTPtoUse = LaunchChip(CHIP_PROTEIN,leek,maxTPtoUse,3);
 	}
 	res = 1; //SUCCESS
 	if (maxTPtoUse >= 3 and getCorrectDistance(leek) <= 5)
 	{
-		res = useChip(CHIP_MOTIVATION, leek);
-		if (res ==USE_SUCCESS or res == USE_FAILED)
-			maxTPtoUse -= 3;
+		maxTPtoUse = LaunchChip(CHIP_MOTIVATION,leek,maxTPtoUse,3);
 	}
 }
 
@@ -94,10 +100,7 @@ function DamageTurn(enemy,maxTPtoUse)
 	//0. Boost Damage
 	if (maxTPtoUse >=5)
 	{
-		res = useChip(CHIP_PROTEIN,getLeek()); //3PT
-		debug("CHIP_PROTEIN : "+res);
-		if (res ==USE_SUCCESS or res == USE_FAILED)
-			maxTPtoUse = maxTPtoUse -3;
+		maxTPtoUse = LaunchChip(CHIP_MOTIVATION,getLeek(),maxTPtoUse,3);
 	}
 	res = 1; //SUCCESS
 	//1. On tire tant qu'on peut
@@ -112,28 +115,19 @@ function DamageTurn(enemy,maxTPtoUse)
 	//2. Etincelle tant qu'on peut
 	while (maxTPtoUse >=3 and (res ==USE_SUCCESS or res == USE_FAILED))
 	{
-		res= useChip(CHIP_SPARK,enemy); //3PT
-		debug("CHIP_SPARK : "+res);
-		if (res ==USE_SUCCESS or res == USE_FAILED)
-			maxTPtoUse -= 3;
+		maxTPtoUse = LaunchChip(CHIP_SPARK,enemy,maxTPtoUse,3);
 	}
 	res =1; //SUCCESS
 	//3. Caillou
 	if (maxTPtoUse >=2)
 	{
-		res = useChip(CHIP_PEBBLE,enemy); //2PT
-		debug("CHIP_PEBBLE : "+res);
-		if (res ==USE_SUCCESS or res == USE_FAILED)
-			maxTPtoUse = maxTPtoUse -2;
+		maxTPtoUse = LaunchChip(CHIP_PEBBLE,enemy,maxTPtoUse,2);
 	}
 	res =1; //SUCCESS
 	//4. Eclair
 	while (maxTPtoUse >=2 and (res ==USE_SUCCESS or res == USE_FAILED))
 	{
-		res = useChip(CHIP_SHOCK,enemy); //2PT
-		debug("CHIP_SHOCK : "+res);
-		if (res ==USE_SUCCESS or res == USE_FAILED)
-			maxTPtoUse = maxTPtoUse -2;
+		maxTPtoUse = LaunchChip(CHIP_SHOCK,enemy,maxTPtoUse,2);
 	}	
 }
 
@@ -148,16 +142,12 @@ function HealTurn(maxTPtoUse, leek)
 	var res = 1; //SUCCESS
  	if (maxTPtoUse >=4 and hpLost > 40)
 	{
-		res = useChip(CHIP_CURE,leek); //4TP
-		if (res ==USE_SUCCESS or res == USE_FAILED)
-			maxTPtoUse = maxTPtoUse -4;
+		maxTPtoUse = LaunchChip(CHIP_CURE,leek,maxTPtoUse,4);
 	}
 	res =1; //SUCCESS
 	if (maxTPtoUse >=2  and getLife(leek) != getTotalLife(leek))
 	{
-		res = useChip(CHIP_BANDAGE,leek); //2TP
-		if (res ==USE_SUCCESS or res == USE_FAILED)
-			maxTPtoUse = maxTPtoUse -2;
+		maxTPtoUse = LaunchChip(CHIP_BANDAGE,leek,maxTPtoUse,2);
 	}
 }
 
@@ -332,10 +322,21 @@ while (pmUsed > 0 and getTP() >=2 and flee == false)
 	}
 	else
 	{
-		pmUsed = moveToward(toGo,1);
+		if (getCorrectDistance(toGo) >= 2 || isEnemy(toGo))
+		{
+			pmUsed = moveToward(toGo,1);
+		}
+		else
+		{
+			pmUsed = 0;
+		}
 	}
 }
-moveToward(toGo,4);
+pmUsed = 1;
+while ( (getCorrectDistance(toGo) >= 2 or isEnemy(toGo)) and pmUsed >0)
+{
+	pmUsed = moveToward(toGo,1);
+}
 
 if (hpLost >50)
 {
