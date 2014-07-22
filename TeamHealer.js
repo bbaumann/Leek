@@ -78,7 +78,7 @@ function BoosterTurn(maxTPtoUse,leek)
 	debug("BoosterTurn ("+getName(leek)+") : " + maxTPtoUse+"/"+getTP()+"TP et "+getLife(leek)+"/"+getTotalLife(leek)+"HP" );
 	
 	var res = 1; //SUCCESS
-	if (maxTPtoUse >= 3 and getCorrectDistance(leek) <= 4)
+	if (maxTPtoUse >= 3 and getCorrectDistance(leek) <= 4 and leek != getLeek())
 	{
 		maxTPtoUse = LaunchChip(CHIP_PROTEIN,leek,maxTPtoUse,3);
 	}
