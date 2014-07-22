@@ -42,8 +42,8 @@ return resultx;
 return null;
 }
 
-function getCorrectDistance(enemyCell) {
-	return getCellDistance(getCell(), enemyCell);
+function getCorrectDistance(enemy) {
+	return getCellDistance(getCell(), getCell(enemy));
 }
 
 function SelfBoosterTurn(maxTPtoUse)
@@ -203,6 +203,7 @@ function PVLost(leek)
 function getMaxLostHPAlly(except) {
     var i;
     var ally = getNearestAlly();
+	var maxPVLost = 0;
     var tabAllies = getAliveAllies();
     for (i=0; i< count(tabAllies); i++)
     {
@@ -211,9 +212,10 @@ function getMaxLostHPAlly(except) {
 		}
 		else
 		{
-			if (PVLost(tabAllies[i]) > PVLost(ally))
+			if (PVLost(tabAllies[i]) > maxPVLost)
 			{
 				ally = tabAllies[i];
+				maxPVLost = PVLost(ally);
 			}
 		}
     }
@@ -224,6 +226,8 @@ function getMaxLostHPAlly(except) {
 //--------------------------------
 //------- Code de base -----------
 //--------------------------------
+
+var enemy = getNearestEnemy();
 
 if (getWeapon() == -1)
 	setWeapon(WEAPON_PISTOL); // Attention : coûte 1 PT
@@ -250,15 +254,31 @@ else if ((modulo == 3 and hpLost > 70) || (modulo == 1 and hpLost > 100))
 //1. On soigne qui on peut
 var nbAllies = count(getAliveAllies());
 var except = [];
+var toGo = enemy;
 while(count(except) != nbAllies)
 {
 	var ally = getMaxLostHPAlly(except);
+	if (PVLost(ally) == 0)
+	{
+		ally = getNearestAlly();
+		debug("Considering Buffing "+getName(ally)+" (lost "+PVLost(ally)+"HP)");
+	}
+	else
+	{
+		if (count(except) == 0)
+		{
+			//C'est le gars qui a perdu le plus de HP, je dois aller vers lui à la fin.
+			toGo = ally;
+		}
+		debug("Considering Healing "+getName(ally)+" (lost "+PVLost(ally)+"HP)");
+	}
 	if (getCorrectDistance(ally) -getMP() <= 6)
 	{
+		debug("Moving toward "+getName(ally));
 		var boostOther = false;
 		if (getCorrectDistance(ally) -getMP() == 6)
 			boostOther =true;
-		while (getCorrectDistance(ally) >= 4)
+		while (getCorrectDistance(ally) >= 4 and getMP() > 0)
 		{
 			if (boostOther)
 			{
@@ -268,7 +288,7 @@ while(count(except) != nbAllies)
 					BoosterTurn(other,getTP());
 				}
 			}
-			moveToward(ally);
+			moveToward(ally,1);
 		}
 		HealTurn(getTP(),ally);
 		BoosterTurn(getTP(),ally);
@@ -276,45 +296,46 @@ while(count(except) != nbAllies)
 	}
 	else
 	{
+		if (PVLost(ally) == 0)
+		{
+			debug("Nobody lost PV, moving toward enemy.");
+			break;
+		}
+		debug("Cannot reach "+getName(ally)+". Moving to the next wounded ally.");
 		push(except, ally);
 	}	
 }
-if (nbAllies == 0)
+
+var enemyCell = getCell(enemy);
+var flee = false;
+var distance = 99;
+var pmUsed = 999;
+while (pmUsed > 0 and getTP() >=2 and flee == false)
 {
-	var enemy = getNearestEnemy();
-	
-	moveToward(enemy,4);
-	//Test, on lance toujours motivation
-	
-	var enemyCell = getCell(enemy);
-	var flee = false;
-	var distance = 99;
-	var pmUsed = 999;
-	while (pmUsed > 0 and getTP() >=2 and flee == false)
+	enemy = getNearestEnemy();
+	enemyCell = getCell(enemy);
+	distance = getCorrectDistance(enemy);
+	debug(distance);
+	if (distance <= 10)
 	{
-		distance = getCorrectDistance(enemyCell);
-		debug(distance);
-		if (distance <= 10)
+		if (hpLost >30 and getLife(enemy)> 50)
 		{
-			if (hpLost >30 and getLife(enemy)> 50)
-			{
-				HealTurn(2,getLeek());
-				DamageTurn(enemy,getTP());
-				
-			}
-			else
-			{
-				DamageTurn(enemy,getTP());
-			}
-			flee = true;
+			HealTurn(2,getLeek());
+			DamageTurn(enemy,getTP());
+			
 		}
 		else
 		{
-			pmUsed = moveToward(enemy,1);
+			DamageTurn(enemy,getTP());
 		}
+		flee = true;
 	}
-	moveToward(enemy,4);
+	else
+	{
+		pmUsed = moveToward(toGo,1);
+	}
 }
+moveToward(toGo,4);
 
 if (hpLost >50)
 {
