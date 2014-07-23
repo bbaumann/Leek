@@ -49,7 +49,7 @@ function getCorrectDistance(enemy) {
 function LaunchChip(chip, leek, maxTPtoUse, TP)
 {
 	var res=useChip(chip,leek);
-	debug(chip + " : "+res);
+	debug(getChipName(chip) + " : "+res);
 	if(res==USE_SUCCESS or res==USE_FAILED)
 		maxTPtoUse -= TP;
 	
@@ -96,13 +96,12 @@ function DamageTurn(enemy,maxTPtoUse)
 	debug("DamageTurn : " + maxTPtoUse+"/"+getTP()+"TP");
 	debug("Enemy Life : " + getLife(enemy) +"/"+getTotalLife(enemy));
 	
-	var res = 1; //SUCCESS
 	//0. Boost Damage
 	if (maxTPtoUse >=5)
 	{
 		maxTPtoUse = LaunchChip(CHIP_MOTIVATION,getLeek(),maxTPtoUse,3);
 	}
-	res = 1; //SUCCESS
+	var res = USE_SUCCESS; //SUCCESS
 	//1. On tire tant qu'on peut
 	while (maxTPtoUse >=3 and (res ==USE_SUCCESS or res == USE_FAILED))
 	{
@@ -111,23 +110,27 @@ function DamageTurn(enemy,maxTPtoUse)
 		if (res ==USE_SUCCESS or res == USE_FAILED)
 			maxTPtoUse -= 3;
 	}
-	res =1; //SUCCESS
+	var used =true; //SUCCESS
 	//2. Etincelle tant qu'on peut
-	while (maxTPtoUse >=3 and (res ==USE_SUCCESS or res == USE_FAILED))
+	while (maxTPtoUse >=3 and used)
 	{
+		var tmp = maxTPtoUse;
 		maxTPtoUse = LaunchChip(CHIP_SPARK,enemy,maxTPtoUse,3);
+		used = (tmp != maxTPtoUse);
 	}
-	res =1; //SUCCESS
+	
 	//3. Caillou
 	if (maxTPtoUse >=2)
 	{
 		maxTPtoUse = LaunchChip(CHIP_PEBBLE,enemy,maxTPtoUse,2);
 	}
-	res =1; //SUCCESS
+	used = true;
 	//4. Eclair
-	while (maxTPtoUse >=2 and (res ==USE_SUCCESS or res == USE_FAILED))
+	while (maxTPtoUse >=2 and used)
 	{
+		var tmp = maxTPtoUse;
 		maxTPtoUse = LaunchChip(CHIP_SHOCK,enemy,maxTPtoUse,2);
+		used = (tmp != maxTPtoUse);
 	}	
 }
 
@@ -167,13 +170,13 @@ function DoNothing(maxTPtoUse)
 	"Encore un coup de ton ISP",
 	"Salut Beau Navet!",
 	"On s'appelle on s'fait un pot au feu?",
-	"Je vous donne jusqu'à 3 et après paf pastèque!",
+	"Je compte jusqu'à 3 et après paf pastèque!",
 	"Ce sprint part en couille",
 	"La bave du poivron n'atteint pas le blanc du poireau",
 	"Touche pas à mon pot'iron!",
 	"Atchoum!",
 	"Mais qu'allait-il donc faire dans ce potager?!",
-	"Aujourd'hui, corvée de courses. J'ai sursauté et failli hurler dans la rue \r\n en pensant que quelqu'un était en train de me toucher les fesses. Le coupable était un poireau qui dépassait de mon cabas. VDM. \r\n GNIARK GNIARK GNIARK",
+	"Aujourd'hui, corvée de courses. J'ai sursauté et failli hurler dans la rue	en pensant que quelqu'un était en train de me toucher les fesses. Le coupable était un poireau qui dépassait de mon cabas. VDM. GNIARK GNIARK GNIARK",
 	"Gniark gniark gniark!",
 	"PAF Pastèque!",
 	"Oh! La belle prise!",
@@ -219,8 +222,8 @@ function getMaxLostHPAlly(except) {
 
 var enemy = getNearestEnemy();
 
-if (getWeapon() == -1)
-	setWeapon(WEAPON_PISTOL); // Attention : coûte 1 PT
+if (getWeapon() == null)
+	setWeapon(WEAPON_MAGNUM); // Attention : coûte 1 PT
 	
 //0. On booste l'agilité dès que possible
 if (getTurn() > 2)
@@ -236,7 +239,7 @@ if (modulo ==2)
 {
 	SelfBoosterTurn(getTP());
 }
-else if ((modulo == 3 and hpLost > 70) || (modulo == 1 and hpLost > 100))
+else if ((modulo == 3 and hpLost > 70) || (modulo != 2 and hpLost > 100))
 {
 	HealTurn(getTP(),getLeek());
 }
@@ -305,7 +308,6 @@ while (pmUsed > 0 and getTP() >=2 and flee == false)
 	enemy = getNearestEnemy();
 	enemyCell = getCell(enemy);
 	distance = getCorrectDistance(enemy);
-	debug(distance);
 	if (distance <= 10)
 	{
 		if (hpLost >30 and getLife(enemy)> 50)
@@ -351,6 +353,9 @@ if (getTurn() > 1 and getTP() >= 3)
 {
 	useChip(CHIP_STRETCHING, getLeek());
 }
+
+if (getMP() > 0 and getCorrectDistance(getNearestAlly()) <= 1)
+	moveAwayFrom(getNearestAlly(),1);
 
 DoNothing(getTP());
 
