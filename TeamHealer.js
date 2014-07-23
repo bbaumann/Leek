@@ -285,6 +285,10 @@ while(count(except) != nbAllies)
 		}
 		HealTurn(getTP(),ally);
 		BoosterTurn(getTP(),ally);
+		if (PVLost(toGo) == 0)
+		{
+			toGo = enemy;
+		}
 		break;
 	}
 	else
@@ -324,7 +328,7 @@ while (pmUsed > 0 and getTP() >=2 and flee == false)
 	}
 	else
 	{
-		if (getCorrectDistance(toGo) >= 2 || isEnemy(toGo))
+		if (getCorrectDistance(toGo) > 2 || isEnemy(toGo))
 		{
 			pmUsed = moveToward(toGo,1);
 		}
@@ -335,7 +339,7 @@ while (pmUsed > 0 and getTP() >=2 and flee == false)
 	}
 }
 pmUsed = 1;
-while ( (getCorrectDistance(toGo) >= 2 or isEnemy(toGo)) and pmUsed >0)
+while ( (getCorrectDistance(toGo) > 2 or isEnemy(toGo)) and pmUsed >0)
 {
 	pmUsed = moveToward(toGo,1);
 }
