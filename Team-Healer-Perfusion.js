@@ -1,34 +1,35 @@
-global lastDripTurn = -5;
-global lastHelmetTurn = -4;
-global lastCureTurn = -2;
-global lastBandageTurn = 0;
-global lastMotivationTurn = -3;
-global lastSteroidTurn = -4;
-global lastProteinTurn = -3;
+function canUse(chip)
+{
+	return (getTP() >= getChipCost(chip) and getCurrentCooldown(chip) == 0);
+}
 
 function canUseDrip()
 {
-	return getTP() >= getChipCost(CHIP_DRIP) and getTurn() - lastDripTurn >=getChipCooldown(CHIP_DRIP);
-}
+	return canUse(CHIP_DRIP);
+} 
 function canUseCure()
 {
-	return getTP() >=getChipCost(CHIP_CURE) and getTurn() - lastCureTurn >=getChipCooldown(CHIP_CURE);
+	return canUse(CHIP_CURE);
 }
 function canUseBandage()
 {
-	return getTP() >=getChipCost(CHIP_BANDAGE) and getTurn() - lastBandageTurn >= getChipCooldown(CHIP_BANDAGE);
+	return canUse(CHIP_BANDAGE);
 }
 function canUseMotivation()
 {
-	return getTP() >=getChipCost(CHIP_MOTIVATION) and getTurn() - lastMotivationTurn >=getChipCooldown(CHIP_MOTIVATION);
+	return canUse(CHIP_MOTIVATION);
 }
 function canUseProtein()
 {
-	return getTP() >=getChipCost(CHIP_PROTEIN) and getTurn() - lastProteinTurn >=getChipCooldown(CHIP_PROTEIN);
+	return canUse(CHIP_PROTEIN);
 }
 function canUseSteroid()
 {
-	return getTP() >=getChipCost(CHIP_STEROID) and getTurn() - lastProteinTurn >=getChipCooldown(CHIP_STEROID);
+	return canUse(CHIP_STEROID);
+}
+function canUseHelmet()
+{
+	return canUse(CHIP_HELMET);
 }
 function canHeal()
 {
@@ -36,7 +37,7 @@ function canHeal()
 }
 function canBoost()
 {
-	return canUseSteroid() or canUseProtein() or canUseMotivation();
+	return canUseSteroid() or canUseProtein() or canUseMotivation() or canUseHelmet();
 }
 
 
@@ -90,6 +91,7 @@ function getCorrectDistance(enemy) {
 
 function LaunchChip(chip, leek, cell, maxTPtoUse)
 {
+	debug(getChipName(chip)+" "+getCurrentCooldown(chip)+" turn");
 	var res;
 	if (leek != null)
 		res=useChip(chip,leek);
@@ -99,23 +101,6 @@ function LaunchChip(chip, leek, cell, maxTPtoUse)
 	if(res==USE_SUCCESS or res==USE_FAILED)
 	{
 		maxTPtoUse -= getChipCost(chip);
-		if (res == USE_SUCCESS)
-		{
-			if (chip == CHIP_BANDAGE)
-				lastBandageTurn = getTurn();
-			else if (chip == CHIP_CURE)
-				lastCureTurn = getTurn();
-			else if (chip == CHIP_DRIP)
-				lastDripTurn = getTurn();
-			else if (chip == CHIP_HELMET)
-				lastHelmetTurn = getTurn();
-			else if (chip == CHIP_MOTIVATION)
-				lastMotivationTurn = getTurn();
-			else if (chip == CHIP_STEROID)
-				lastSteroidTurn = getTurn();
-			else if (chip == CHIP_PROTEIN)
-				lastProteinTurn = getTurn();
-		}
 	}
 	return maxTPtoUse;
 }
@@ -125,14 +110,14 @@ function SelfBoosterTurn(maxTPtoUse)
 	if (maxTPtoUse > getTP())
 		maxTPtoUse = getTP();
 	debug("SelfBoosterTurn : " + maxTPtoUse+"/"+getTP()+"TP");
-	if (maxTPtoUse >=4)
+	if (canUse(CHIP_ARMOR))
 	{
-		if (maxTPtoUse >= 7)
-		{
-			LaunchChip(CHIP_STRETCHING, getLeek(),null,getTP()); //3TP
-		}
-		LaunchChip(CHIP_HELMET, getLeek(),null,getTP()); //4TP	
+		var res = LaunchChip(CHIP_ARMOR, getLeek(),null,getTP()); //6TP
 	}
+	/*if (canUse(CHIP_HELMET))
+	{
+		var res = LaunchChip(CHIP_HELMET, getLeek(),null,getTP()); //4TP
+	}*/
 }
 
 function BoosterTurn(maxTPtoUse,leek)
@@ -147,6 +132,10 @@ function BoosterTurn(maxTPtoUse,leek)
 		maxTPtoUse = LaunchChip(CHIP_STEROID,leek,null,maxTPtoUse);
 	}
 	res = 1; //SUCCESS
+	if (maxTPtoUse >= 4 and getCorrectDistance(leek) <=4)
+	{
+		maxTPtoUse = LaunchChip(CHIP_HELMET,leek,null,maxTPtoUse);
+	}
 	if (maxTPtoUse >= 3 and getCorrectDistance(leek) <= 5)
 	{
 		maxTPtoUse = LaunchChip(CHIP_MOTIVATION,leek,null,maxTPtoUse);
@@ -169,42 +158,15 @@ function DamageTurn(enemy,maxTPtoUse)
 	debug("DamageTurn : " + maxTPtoUse+"/"+getTP()+"TP");
 	debug("Enemy Life : " + getLife(enemy) +"/"+getTotalLife(enemy));
 	
-	//0. Boost Damage
-	if (maxTPtoUse >=5)
-	{
-		maxTPtoUse = LaunchChip(CHIP_MOTIVATION,getLeek(),null,maxTPtoUse);
-	}
 	var res = USE_SUCCESS; //SUCCESS
 	//1. On tire tant qu'on peut
-	while (maxTPtoUse >=3 and (res ==USE_SUCCESS or res == USE_FAILED))
+	while (maxTPtoUse >=5 and (res ==USE_SUCCESS or res == USE_FAILED))
 	{
 		res = useWeapon(enemy); //3PT
 		debug("Pistol : "+res);
 		if (res ==USE_SUCCESS or res == USE_FAILED)
-			maxTPtoUse -= 3;
+			maxTPtoUse -= 5;
 	}
-	var used =true; //SUCCESS
-	//2. Etincelle tant qu'on peut
-	/*while (maxTPtoUse >=3 and used)
-	{
-		var tmp = maxTPtoUse;
-		maxTPtoUse = LaunchChip(CHIP_SPARK,enemy,maxTPtoUse,3);
-		used = (tmp != maxTPtoUse);
-	}*/
-	
-	//3. Caillou
-	if (maxTPtoUse >=2)
-	{
-		maxTPtoUse = LaunchChip(CHIP_PEBBLE,enemy,null,maxTPtoUse);
-	}
-	used = true;
-	//4. Eclair
-	/*while (maxTPtoUse >=2 and used)
-	{
-		var tmp = maxTPtoUse;
-		maxTPtoUse = LaunchChip(CHIP_SHOCK,enemy,maxTPtoUse,2);
-		used = (tmp != maxTPtoUse);
-	}*/	
 }
 
 
@@ -345,25 +307,18 @@ function DoNothing(maxTPtoUse)
 	maxTPtoUse--;
 }
 
+//Main
+
 var enemy = getMinPVEnemy();
 	
 //0. On booste l'agilité dès que possible
-if (getTurn() > 2)
-{
+if (canUse(CHIP_STRETCHING))
 	LaunchChip(CHIP_STRETCHING, getLeek(),null,getTP());
-}
+SelfBoosterTurn(getTP());
 
 var hpLost = getTotalLife() - getLife();
 
-if (getTurn() >= 2 and (getTurn() - lastHelmetTurn >= 4))
-{
-	SelfBoosterTurn(getTP());
-}
-if (
-	((getTurn() - lastHelmetTurn == 1) and hpLost > 80)
-	or ((getTurn() - lastHelmetTurn == 3) and hpLost > 140)
-	or (hpLost > 300)
-	)
+if (hpLost > 140)
 {
 	HealTurn(getTP(),getLeek());
 }
@@ -560,19 +515,16 @@ else if (hpLost > 10)
 	HealTurn(2,getLeek());
 }
 
-if (getTurn() < 2 and (getTurn() - lastHelmetTurn >= 4))
-{
-	SelfBoosterTurn(getTP());
-}
-
-if (canBoost())
+if (canBoost() and getNearestAlly() != null)
 {
 	//Utile si on n'a pas pu booster le gars voulu
 	BoosterTurn(getTP(),getNearestAlly());
 }
 //Si jamais on peut
-LaunchChip(CHIP_MOTIVATION, getLeek(),null,getTP());
-LaunchChip(CHIP_STRETCHING, getLeek(),null,getTP());
+if (canUse(CHIP_STRETCHING))
+	LaunchChip(CHIP_STRETCHING, getLeek(),null,getTP());
+if (canUseMotivation())
+	LaunchChip(CHIP_MOTIVATION, getLeek(),null,getTP());
 
 if (getMP() > 0 and getNearestAlly() != null and getCorrectDistance(getNearestAlly()) <= 1)
 	moveAwayFrom(getNearestAlly(),1);
